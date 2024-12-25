@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>题单页面</title>
+    <!-- 引入 Bootstrap 样式 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f7f7f7;
+        }
+        .navbar {
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar {
+            background-color: #ffffff;
+            box-shadow: 1px 0 5px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            height: 100vh;
+        }
+        .sidebar h5 {
+            margin-bottom: 20px;
+        }
+        .empty-state {
+            text-align: center;
+            margin-top: 50px;
+            color: #aaa;
+        }
+        .empty-state h3 {
+            font-weight: 300;
+        }
+        .empty-state button {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">力扣</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="#">学习</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">题库</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">竞赛</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">讨论</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">求职</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">商店</a></li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#">🔔</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">用户</a></li>
+                    <li class="nav-item"><a class="btn btn-warning btn-sm" href="#">Plus 会员</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 左侧侧边栏 -->
+            <aside class="col-md-3 sidebar">
+                <h5>
+                    我的题单
+                    <button class="btn btn-sm btn-success float-end" id="add-list-btn" style="margin-left: 10px;" title="创建题单">+</button>
+                </h5>
+                <ul class="list-group" id="quiz-list">
+                    <!-- 题单列表会动态加载在这里 -->
+                </ul>
+            </aside>
+
+            <!-- 主要内容区域 -->
+            <main class="col-md-9">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">我的收藏</h5>
+                        <p class="card-subtitle text-muted">pepper · 0 题</p>
+                        <div class="mt-3">
+                            <button class="btn btn-primary me-2">开始练习</button>
+                            <button class="btn btn-outline-secondary me-2">+</button>
+                            <button class="btn btn-outline-secondary">编辑</button>
+                        </div>
+                        <p class="text-muted mt-2">更新时间：几秒前</p>
+                        <div class="mt-3">
+                            <h6>进度</h6>
+                            <div class="progress" style="height: 30px;">
+                                <div class="progress-bar bg-info text-dark" style="width: 0%;" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0/0 已解答</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 空题目状态 -->
+                <div class="empty-state" id="empty-state">
+                    <h3>暂无题目</h3>
+                    <button class="btn btn-dark" id="add-question-btn">+ 添加题目</button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 创建题单 Modal -->
+    <div class="modal fade" id="createQuizModal" tabindex="-1" aria-labelledby="createQuizModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createQuizModalLabel">创建新题单</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="quiz-title" class="form-label">题单标题</label>
+                        <input type="text" class="form-control" id="quiz-title" placeholder="请输入题单标题">
+                    </div>
+
+                    <!-- 题单描述 -->
+                    <div class="mb-3">
+                        <label for="quiz-description" class="form-label">题单描述（可选）</label>
+                        <textarea class="form-control" id="quiz-description" rows="3" placeholder="请输入题单描述"></textarea>
+                    </div>
+
+                    <!-- 题目表格 -->
+                    <table class="table table-bordered" id="quiz-table">
+                        <thead>
+                            <tr>
+                                <th>题目名称</th>
+                                <th>题目链接</th>
+                                <th>难度</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><input type="text" class="form-control" placeholder="题目名称"></td>
+                                <td><input type="url" class="form-control" placeholder="题目链接"></td>
+                                <td>
+                                    <select class="form-control">
+                                        <option value="easy">简单</option>
+                                        <option value="medium">中等</option>
+                                        <option value="hard">困难</option>
+                                    </select>
+                                </td>
+                                <td><button type="button" class="btn btn-danger btn-sm remove-row-btn">删除</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <button type="button" class="btn btn-success" id="add-row-btn">+ 添加题目</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" id="create-quiz-btn">创建题单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 Bootstrap 和 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const addListBtn = document.getElementById('add-list-btn');
+            if (addListBtn) {
+                addListBtn.addEventListener('click', function() {
+                    // 显示模态框
+                    const createQuizModal = new bootstrap.Modal(document.getElementById("createQuizModal"));
+                    createQuizModal.show();
+                });
+            }
+
+            // 绑定添加行按钮
+            document.getElementById("add-row-btn").addEventListener("click", () => {
+                const tableBody = document.querySelector("#quiz-table tbody");
+                const newRow = document.createElement("tr");
+                newRow.innerHTML = `
+                    <td><input type="text" class="form-control" placeholder="题目名称"></td>
+                    <td><input type="url" class="form-control" placeholder="题目链接"></td>
+                    <td>
+                        <select class="form-control">
+                            <option value="easy">简单</option>
+                            <option value="medium">中等</option>
+                            <option value="hard">困难</option>
+                        </select>
+                    </td>
+                    <td><button type="button" class="btn btn-danger btn-sm remove-row-btn">删除</button></td>
+                `;
+                tableBody.appendChild(newRow);
+
+                // 绑定新行的删除按钮
+                newRow.querySelector(".remove-row-btn").addEventListener("click", () => {
+                    tableBody.removeChild(newRow);
+                });
+            });
+
+            // 创建题单
+            document.getElementById("create-quiz-btn").addEventListener("click", async () => {
+                const title = document.getElementById("quiz-title").value.trim();
+                const description = document.getElementById("quiz-description").value.trim(); // 获取题单描述
+                if (!title) {
+                    alert("题单标题不能为空！");
+                    return;
+                }
+
+                const tableRows = document.querySelectorAll("#quiz-table tbody tr");
+                const questions = [];
+
+                // 如果表格有题目，则收集题目信息
+                tableRows.forEach(row => {
+                    const name = row.querySelector("td:nth-child(1) input").value.trim();
+                    const link = row.querySelector("td:nth-child(2) input").value.trim();
+                    const difficulty = row.querySelector("td:nth-child(3) select").value;
+
+                    if (name && link && difficulty) {
+                        questions.push({ name, link, difficulty });
+                    }
+                });
+
+                // 即使没有题目也允许创建题单
+                const quizData = {
+                    title: title,
+                    description: description, // 添加描述字段
+                    questions: questions // 如果没有题目，这里将为空数组
+                };
+
+                try {
+                    // 发送请求到后端
+                    const response = await fetch('/create_quiz', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(quizData)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('题单创建失败，请稍后再试');
+                    }
+
+                    // 处理成功响应
+                    const responseData = await response.json();
+                    if (responseData.success) {
+                        alert("题单创建成功！");
+                        // 关闭模态框
+                        const createQuizModal = bootstrap.Modal.getInstance(document.getElementById("createQuizModal"));
+                        createQuizModal.hide();
+
+                        // 清空输入框
+                        document.getElementById("quiz-title").value = "";
+                        document.getElementById("quiz-description").value = ""; // 清空描述
+                        document.querySelector("#quiz-table tbody").innerHTML = `
+                            <tr>
+                                <td><input type="text" class="form-control" placeholder="题目名称"></td>
+                                <td><input type="url" class="form-control" placeholder="题目链接"></td>
+                                <td>
+                                    <select class="form-control">
+                                        <option value="easy">简单</option>
+                                        <option value="medium">中等</option>
+                                        <option value="hard">困难</option>
+                                    </select>
+                                </td>
+                                <td><button type="button" class="btn btn-danger btn-sm remove-row-btn">删除</button></td>
+                            </tr>
+                        `;
+                    } else {
+                        alert("题单创建失败，请稍后再试");
+                    }
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert("题单创建失败，请稍后再试");
+                }
+            });
+        });
+    </script>
+</body>
+</html>

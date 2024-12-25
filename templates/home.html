@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录和注册</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f7fc;
+        }
+
+        .form-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 300px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .input-group input:focus {
+            outline-color: #007bff;
+        }
+
+        .form-footer {
+            text-align: center;
+        }
+
+        .form-footer button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .form-footer button:hover {
+            background-color: #0056b3;
+        }
+
+        .toggle-link {
+            color: #007bff;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .toggle-link:hover {
+            text-decoration: underline;
+        }
+
+        .error {
+            color: red;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="form-container" id="form-container">
+    <h2>登录</h2>
+
+    <!-- 登录表单 -->
+    <form id="login-form">
+        <div class="input-group">
+            <label for="login-account">账号</label>
+            <input type="text" id="login-account" name="account" required>
+            <div id="login-account-error" class="error"></div>
+        </div>
+        <div class="input-group">
+            <label for="login-password">密码</label>
+            <input type="password" id="login-password" name="password" required>
+            <div id="login-password-error" class="error"></div>
+        </div>
+        <div class="form-footer">
+            <button type="submit">登录</button>
+            <p>没有账号？<span class="toggle-link" onclick="toggleForm()">注册</span></p>
+        </div>
+    </form>
+
+    <!-- 注册表单（默认隐藏）-->
+    <form id="register-form" style="display:none;">
+        <div class="input-group">
+            <label for="register-username">用户名</label>
+            <input type="text" id="register-username" name="username" required>
+            <div id="register-username-error" class="error"></div>
+        </div>
+        <div class="input-group">
+            <label for="register-account">账号</label>
+            <input type="text" id="register-account" name="account" required>
+            <div id="register-account-error" class="error"></div>
+        </div>
+        <div class="input-group">
+            <label for="register-password">密码</label>
+            <input type="password" id="register-password" name="password" required>
+            <div id="register-password-error" class="error"></div>
+        </div>
+        <div class="input-group">
+            <label for="register-confirm-password">确认密码</label>
+            <input type="password" id="register-confirm-password" name="confirm-password" required>
+            <div id="register-confirm-password-error" class="error"></div>
+        </div>
+        <div class="form-footer">
+            <button type="submit">注册</button>
+            <p>已经有账号？<span class="toggle-link" onclick="toggleForm()">登录</span></p>
+        </div>
+    </form>
+</div>
+
+<script>
+    // 清空表单中的所有输入框
+    function clearFormInputs(form) {
+        const inputs = form.querySelectorAll('input');
+        inputs.forEach(input => input.value = '');
+    }
+    // 切换登录和注册表单
+    function toggleForm() {
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const heading = document.querySelector('.form-container h2');
+        clearFormInputs(loginForm);
+        clearFormInputs(registerForm);
+
+        if (loginForm.style.display === 'none') {
+            loginForm.style.display = 'block';
+            registerForm.style.display = 'none';
+            heading.innerText = '登录';
+        } else {
+            loginForm.style.display = 'none';
+            registerForm.style.display = 'block';
+            heading.innerText = '注册';
+        }
+    }
+function RequestMainPage() {
+    fetch('/main', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'text/html',
+        },
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.text(); // 获取 HTML 文本
+        } else {
+            throw new Error('加载页面失败');
+        }
+    })
+    .then(html => {
+        document.documentElement.innerHTML = html; // 替换整个页面内容
+    })
+    .catch(error => {
+        console.error('请求 main 页面失败:', error);
+        alert('无法加载主页面，请重试');
+    });
+}
+
+    // 登录表单验证
+    document.getElementById('login-form').addEventListener('submit', function (e) {
+        console.log("登录验证")
+        e.preventDefault();
+
+        let isValid = true;
+        const account = document.getElementById('login-account').value;
+        const password = document.getElementById('login-password').value;
+
+        // 清除之前的错误
+        document.getElementById('login-account-error').innerText = '';
+        document.getElementById('login-password-error').innerText = '';
+
+        // 简单的验证
+        if (!account) {
+            document.getElementById('login-account-error').innerText = '用户名不能为空';
+            isValid = false;
+        }
+
+        if (!password) {
+            document.getElementById('login-password-error').innerText = '密码不能为空';
+            isValid = false;
+        }
+        if(isValid){
+            // 使用 fetch 或 XMLHttpRequest 将数据发送到 Flask 后端
+
+            fetch('/login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                account: account,
+                password: password
+              })
+            })
+            .then(response => response.json()) // 将数据解析为json
+            .then(data => {
+              if (data.status_code) {
+                // 登录成功，执行相应操作
+                alert('登录成功');
+                console.log(data)
+                // 可以将用户账号保存到前端，例如存储在 localStorage 或 cookie 中
+                  // 请求主页面
+                  // RequestMainPage();
+                  window.location.href = '/main';
+              } else {
+                alert('登录失败');
+              }
+            })
+            .catch(error => {
+                alert('请先注册再登录')
+            });
+        }else{
+
+
+        }
+    });
+
+    // 注册表单验证
+    document.getElementById('register-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        let isValid = true;
+        const account = document.getElementById('register-account').value;
+        const username = document.getElementById('register-username').value;
+        const password = document.getElementById('register-password').value;
+        const confirmPassword = document.getElementById('register-confirm-password').value;
+
+        // 清除之前的错误
+        document.getElementById('register-username-error').innerText = '';
+        document.getElementById('register-password-error').innerText = '';
+        document.getElementById('register-confirm-password-error').innerText = '';
+
+        // 简单的验证
+        if (!account) {
+            document.getElementById('register-username-error').innerText = '用户名不能为空';
+            isValid = false;
+        }
+        if (!username) {
+            document.getElementById('register-username-error').innerText = '账号不能为空';
+            isValid = false;
+        }
+
+        if (!password) {
+            document.getElementById('register-password-error').innerText = '密码不能为空';
+            isValid = false;
+        }
+
+        if (password !== confirmPassword) {
+            document.getElementById('register-confirm-password-error').innerText = '密码不匹配';
+            isValid = false;
+        }
+
+        // 如果验证通过
+        if (isValid) {
+        fetch('/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+              account: account,
+            username: username,
+            password: password
+          })
+        })
+        .then(response => response.json()) // 将数据解析为json
+        .then(data => {
+              if (data.status_code) {
+                // 登录成功，执行相应操作
+                alert('注册成功');
+                console.log(data)
+                // 可以将用户账号保存到前端，例如存储在 localStorage 或 cookie 中
+                toggleForm();
+              } else {
+                alert('注册失败');
+              }
+            })
+            .catch(error => {
+                alert('请保证输入正确')
+            });
+        }
+    });
+</script>
+
+</body>
+</html>
