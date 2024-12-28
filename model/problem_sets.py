@@ -8,6 +8,7 @@ from model.user_subscriptions import UserSubscriptions
 from utils.mysql_config import MySQLConnection
 from model.problems import Problems
 from model.problem_set_problems import ProblemSetProblems
+from model.user_problem_status import UserProblemStatus
 
 class ProblemSets:
     def __init__(self):
@@ -55,7 +56,11 @@ class ProblemSets:
             # 在 problems 中创建题目，并获取 problem_id
             problems_id_list = Problems().create_problems(data['questions'],user_id)
             # 在 problem_set_problems 中设置 set_id,problem_id
+            print("set_id: ",set_id)
+            print("problems_id_list: ",problems_id_list)
             ProblemSetProblems().insert_problems(set_id,problems_id_list)
+            UserProblemStatus().create(user_id, problems_id_list)
+
 
     def get_set_except_set_id_list(self,set_id_list):
         set_except_id_list = []
@@ -72,8 +77,17 @@ class ProblemSets:
             self.cursor.execute("select * from problem_sets where set_id=%s",(set_id,))
             result = self.cursor.fetchall()
             if result is not None:
-                problem_sets_list.append(result)
+                # print("result: ",result[0])
+                problem_sets_list.append(result[0])
         return problem_sets_list
+
+    def check_problem_sets_exist(self,set_id):
+        self.cursor.execute('select * from problem_sets where set_id=%s',(set_id))
+        result = self.cursor
+        if result is not None:
+            return True
+        else:
+            return False
 
 
 

@@ -2,6 +2,7 @@ import hashlib
 from flask import jsonify
 from utils import mysql_config
 from utils.logger import Logger
+from utils.mysql_config import MySQLConnection
 
 
 class ProblemSetProblems:
@@ -21,5 +22,15 @@ class ProblemSetProblems:
     def insert_problems(self,set_id,problems_id_list):
         for problem_id in problems_id_list:
             self.cursor.execute("insert into problem_set_problems (set_id,problem_id) values(%s,%s)",(set_id,problem_id))
+            MySQLConnection().get_connection().commit()
             Logger().get_logger().info(f"insert into {set_id},{problem_id}")
+
+    def get_problems_list(self,set_id):
+        self.cursor.execute('select problem_id from problem_set_problems where set_id=%s',(set_id))
+        result = self.cursor.fetchall()
+        problems_list = []
+        if result is not None:
+            for problem_id in result:
+                problems_list.append(problem_id)
+        return problems_list
 

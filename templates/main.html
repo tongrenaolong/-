@@ -109,7 +109,6 @@
             <!-- 空题目状态 -->
             <div class="empty-state" id="empty-state">
                 <h3>暂无题目</h3>
-                <button class="btn btn-dark" id="add-question-btn">+ 添加题目</button>
             </div>
         </main>
     </div>
@@ -174,10 +173,57 @@
     </div>
 </div>
 
+<div class="modal fade" id="createProblemModal" tabindex="-1" aria-labelledby="createQuizModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createQuizModalLabel">创建题目</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 题目表格 -->
+                <table class="table table-bordered" id="problems-table">
+                    <thead>
+                    <tr>
+                        <th>题目名称</th>
+                        <th>题目链接</th>
+                        <th>难度</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><input type="text" class="form-control" placeholder="题目名称"></td>
+                        <td><input type="url" class="form-control" placeholder="题目链接"></td>
+                        <td>
+                            <select class="form-control">
+                                <option value="easy">简单</option>
+                                <option value="medium">中等</option>
+                                <option value="hard">困难</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm remove-row-btn">删除</button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <button type="button" class="btn btn-success" id="add-row-btn">+ 添加题目</button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="create-problem-btn">创建题目</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 引入 Bootstrap 和 JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+    var current_set_id = -1;
     document.addEventListener('DOMContentLoaded', () => {
         getSets();
     });
@@ -204,7 +250,7 @@
                 // 遍历题单数据并添加到列表
                 sets.forEach(set => {
                     console.log(set)
-                    const [set_id,set_name, created_at, description, authority] = set;
+                    const [set_id, set_name, created_at, description, authority] = set;
 
                     // 创建新的列表项
                     const listItem = document.createElement('li');
@@ -217,7 +263,7 @@
                                     <p class="text-muted mb-0">${description}</p>
                                     <small>创建时间: ${created_at}</small>
                                 </div>
-                                <button class="btn btn-sm btn-outline-primary" onclick="loadSet('${set_name}')">查看</button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="loadSet('${set_id}')">查看</button>
                             `;
 
                     // 添加到列表
@@ -334,6 +380,7 @@
                                 <td><button type="button" class="btn btn-danger btn-sm remove-row-btn">删除</button></td>
                             </tr>
                         `;
+                    getSets();
                 } else {
                     alert("题单创建失败，请稍后再试");
                 }
@@ -343,6 +390,237 @@
                 alert("题单创建失败，请稍后再试");
             }
         });
+    });
+document.addEventListener('DOMContentLoaded', () => {
+    // 获取页面上的所有模态框
+    const modals = document.querySelectorAll('.modal');
+
+    // 遍历所有模态框
+    modals.forEach(modal => {
+        // 监听每个模态框的 'hidden.bs.modal' 事件
+        modal.addEventListener('hidden.bs.modal', () => {
+            // 只对特定模态框进行内容清空
+            if (modal.id === "createQuizModal") {
+                // 清空创建题单的模态框内容
+                document.getElementById("quiz-title").value = "";
+                document.getElementById("quiz-description").value = "";
+                document.querySelector("#quiz-table tbody").innerHTML = `
+                    <tr>
+                        <td><input type="text" class="form-control" placeholder="题目名称"></td>
+                        <td><input type="url" class="form-control" placeholder="题目链接"></td>
+                        <td>
+                            <select class="form-control">
+                                <option value="easy">简单</option>
+                                <option value="medium">中等</option>
+                                <option value="hard">困难</option>
+                            </select>
+                        </td>
+                        <td><button type="button" class="btn btn-danger btn-sm remove-row-btn">删除</button></td>
+                    </tr>
+                `;
+            }
+
+            if (modal.id === "createProblemModal") {
+                // 清空创建题目的模态框内容
+                document.querySelector("#problems-table tbody").innerHTML = `
+                    <tr>
+                        <td><input type="text" class="form-control" placeholder="题目名称"></td>
+                        <td><input type="url" class="form-control" placeholder="题目链接"></td>
+                        <td>
+                            <select class="form-control">
+                                <option value="easy">简单</option>
+                                <option value="medium">中等</option>
+                                <option value="hard">困难</option>
+                            </select>
+                        </td>
+                        <td><button type="button" class="btn btn-danger btn-sm remove-row-btn">删除</button></td>
+                    </tr>
+                `;
+            }
+        });
+    });
+});
+
+    async function loadSet(set_id) {
+        try {
+            current_set_id = set_id
+            // 请求题单详情
+            const response = await fetch(`/get_set_problems?set_id=${set_id}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const responseData = await response.json();
+            if (responseData['status_code']) {
+                const problems_info_list = responseData['problems_info_list'];
+
+                // 获取主页面区域
+                const mainContent = document.querySelector('main');
+
+                // 清空主页面内容并显示题目列表
+                mainContent.innerHTML = `
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                        题目列表
+                        </h5>
+            `;
+
+                // 如果问题列表为空，显示“暂无题目”
+                if (problems_info_list.length === 0 || problems_info_list.every(list => list.length === 0)) {
+                    mainContent.innerHTML += `
+                    <p class="text-muted">暂无题目</p>
+                `;
+                } else {
+                    // 否则显示题目列表
+                    mainContent.innerHTML += `
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>是否完成</th>
+                                <th>题目名称</th>
+                                <th>难度</th>
+                                <th>完成情况</th>
+                            </tr>
+                        </thead>
+                        <tbody id="question-list">
+                            ${problems_info_list.map(
+                        (problem) => {
+                            // var completion_rate = problem.completion_rate || 0; // 获取题目的完成情况，默认为0
+
+                            var completion_rate = problem.completed / problem.all
+                            const percentage = Math.round(completion_rate * 100); // 将小数转换为百分比
+                            return `
+                                    <tr>
+                                        <td><input type="checkbox" ${problem.status === 'completed' ? 'checked' : ''} class="form-check-input" disabled></td>
+                                        <td><a href="${problem.link}" target="_blank">${problem.problem_name}</a></td>
+                                        <td>${problem.difficulty}</td>
+                                        <td>
+                                            <!-- 显示进度条和百分比 -->
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-info text-dark" style="width: ${percentage}%" role="progressbar"
+                                                     aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100">
+                                                     ${percentage}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `
+                        }
+                    ).join('')}
+                        </tbody>
+                    </table>
+                    <div class="text-center">
+                        <button class="btn btn-dark btn-lg" id="add-question-btn" style="width: 100%;">+ 添加题目</button>
+                    </div>
+                `;
+                }
+
+                mainContent.innerHTML += `</div></div>`;
+                // 绑定事件监听器给动态渲染的按钮
+                const addQuestionBtn = document.getElementById('add-question-btn');
+                if (addQuestionBtn) {
+                    addQuestionBtn.addEventListener('click', function () {
+                        // 弹出页面
+                        console.log('添加题目按钮被点击');
+                        // 显示模态框
+                        const createProblemModal = new bootstrap.Modal(document.getElementById("createProblemModal"));
+                        createProblemModal.show();
+
+                        // 你可以在这里添加弹出页面的逻辑，比如显示一个弹出框
+                        document.getElementById("createProblemModal").querySelector("#add-row-btn").addEventListener("click", () => {
+                            const tableBody = document.querySelector("#problems-table tbody");
+                            const newRow = document.createElement("tr");
+                            newRow.innerHTML = `
+                    <td><input type="text" class="form-control" placeholder="题目名称"></td>
+                    <td><input type="url" class="form-control" placeholder="题目链接"></td>
+                    <td>
+                        <select class="form-control">
+                            <option value="easy">简单</option>
+                            <option value="medium">中等</option>
+                            <option value="hard">困难</option>
+                        </select>
+                    </td>
+                    <td><button type="button" class="btn btn-danger btn-sm remove-problem-row-btn">删除</button></td>
+                `;
+                            tableBody.appendChild(newRow);
+
+                            // 绑定新行的删除按钮
+                            newRow.querySelector(".remove-problem-row-btn").addEventListener("click", () => {
+                                tableBody.removeChild(newRow);
+                            });
+                        });
+                    });
+                }
+            } else {
+                alert("题目加载失败，请稍后再试");
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert("题目加载失败，请稍后再试");
+        }
+    }
+    document.getElementById('create-problem-btn').addEventListener('click',async ()=>{
+        const tableRows = document.querySelectorAll("#problems-table tbody tr");
+            const questions = [];
+
+            // 如果表格有题目，则收集题目信息
+            tableRows.forEach(row => {
+                const name = row.querySelector("td:nth-child(1) input").value.trim();
+                const link = row.querySelector("td:nth-child(2) input").value.trim();
+                const difficulty = row.querySelector("td:nth-child(3) select").value;
+
+                if (name && link && difficulty) {
+                    questions.push({name, link, difficulty});
+                }
+            });
+            const data = {
+                set_id: current_set_id,
+                questions: questions // 如果没有题目，这里将为空数组
+            };
+        try{
+            // 发送请求到后端
+            const response = await fetch('/create_problems', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            // 处理成功响应
+            const responseData = await response.json();
+            if (responseData['status_code']) {
+                    alert("题单创建成功！");
+                    // 关闭模态框
+                    const createProblemModal = bootstrap.Modal.getInstance(document.getElementById("createProblemModal"));
+                    createProblemModal.hide();
+
+                    // 清空输入框
+                    document.querySelector("#problems-table tbody").innerHTML = `
+                            <tr>
+                                <td><input type="text" class="form-control" placeholder="题目名称"></td>
+                                <td><input type="url" class="form-control" placeholder="题目链接"></td>
+                                <td>
+                                    <select class="form-control">
+                                        <option value="easy">简单</option>
+                                        <option value="medium">中等</option>
+                                        <option value="hard">困难</option>
+                                    </select>
+                                </td>
+                                <td><button type="button" class="btn btn-danger btn-sm remove-problem-row-btn">删除</button></td>
+                            </tr>
+                        `;
+                    loadSet(current_set_id);
+                } else {
+                    alert("题单创建失败，请稍后再试");
+                }
+        } catch (error) {
+                console.error('Error:', error);
+                alert("题目创建失败，请稍后再试");
+        }
     });
 </script>
 </body>
