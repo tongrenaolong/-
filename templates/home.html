@@ -208,7 +208,6 @@ function RequestMainPage() {
         }
         if(isValid){
             // 使用 fetch 或 XMLHttpRequest 将数据发送到 Flask 后端
-
             fetch('/login', {
               method: 'POST',
               headers: {
@@ -221,9 +220,9 @@ function RequestMainPage() {
             })
             .then(response => response.json()) // 将数据解析为json
             .then(data => {
-              if (data.status_code) {
+              if (data['status_code']) {
                 // 登录成功，执行相应操作
-                alert('登录成功');
+                // alert('登录成功');
                 console.log(data)
                 // 可以将用户账号保存到前端，例如存储在 localStorage 或 cookie 中
                   // 请求主页面

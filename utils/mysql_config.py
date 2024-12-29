@@ -9,7 +9,7 @@ class MySQLConnection:
     _lock = threading.Lock()  # 用于线程安全的锁
 
     def __new__(cls, config_file=None):
-        Logger().get_logger().info(f"{config_file}")
+        # Logger().get_logger().info(f"{config_file}")
         with cls._lock:  # 确保线程安全
             if cls._instance is None:  # 如果实例为空，创建实例
                 cls._instance = super(MySQLConnection, cls).__new__(cls)

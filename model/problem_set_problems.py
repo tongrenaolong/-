@@ -34,3 +34,7 @@ class ProblemSetProblems:
                 problems_list.append(problem_id)
         return problems_list
 
+    def delete_set_id(self,set_id):
+        self.cursor.execute('delete from problem_set_problems where set_id=%s',(set_id))
+        MySQLConnection().get_connection().commit()
+

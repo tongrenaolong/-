@@ -42,3 +42,12 @@ class UserProblemStatus:
         for problem_id in problems_id_list:
             self.cursor.execute('insert into user_problem_status (user_id, problem_id) values (%s, %s)',(user_id,problem_id))
             MySQLConnection().get_connection().commit()
+
+    def delete_problems_id_list(self,problems_id_list):
+        for problem_id in problems_id_list:
+            self.cursor.execute('delete from user_problem_status where problem_id=%s',(problem_id))
+        MySQLConnection().get_connection().commit()
+
+    def refreshStatus(self,user_id, problem_id,status, input_text, image_data):
+        self.cursor.execute('update user_problem_status set status=%s,description=%s,image=%s where user_id=%s and problem_id=%s',(status,input_text,image_data,user_id,problem_id))
+        MySQLConnection().get_connection().commit()

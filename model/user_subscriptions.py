@@ -10,6 +10,7 @@ class UserSubscriptions:
         self.cursor = mysql_config.MySQLConnection().get_cursor()
 
     def check_exist(self,set_id,user_id):
+        print(f"set_id: {set_id}, user_id: {user_id}")
         self.cursor.execute("select * from user_subscriptions where set_id=%s and user_id=%s", (set_id,user_id))
         result = self.cursor.fetchone()
         if result is not None:
@@ -40,3 +41,16 @@ class UserSubscriptions:
             print(except_user_id)
             set_id_list.append(except_user_id[0])
         return set_id_list
+
+    def delete_set_id(self,set_id):
+        self.cursor.execute('delete from user_subscriptions where set_id=%s',(set_id))
+        MySQLConnection().get_connection().commit()
+
+    def get_user_id_list(self,set_id_list):
+        user_id_list = []
+        for set_id in set_id_list:
+            self.cursor.execute('select user_id from user_subscriptions where set_id=%s and authority=1',(set_id))
+            result = self.cursor.fetchone()
+            if result is not None:
+                user_id_list.append(result[0])
+        return user_id_list

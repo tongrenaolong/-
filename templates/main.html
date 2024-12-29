@@ -39,6 +39,22 @@
         .empty-state button {
             margin-top: 20px;
         }
+        /* 保证搜索框和按钮对齐 */
+        #search-input {
+            width: 150px;
+        }
+
+        h5 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #add-list-btn {
+            margin-left: 10px;
+        }
+
+
     </style>
 </head>
 <body>
@@ -74,35 +90,23 @@
         <aside class="col-md-3 sidebar">
             <h5>
                 我的题单
-                <button class="btn btn-sm btn-success float-end" id="add-list-btn" style="margin-left: 10px;"
-                        title="创建题单">+
-                </button>
             </h5>
+            <div class="d-flex justify-content-between align-items-center">
+                <!-- 搜索框放在创建题单按钮的左侧 -->
+                <div class="input-group me-2" style="flex-grow: 1;">
+                    <input type="text" id="search-input" class="form-control form-control-sm" placeholder="请输入题单名称" aria-label="搜索题单">
+                </div>
+                <button class="btn btn-sm btn-success" id="add-list-btn" title="创建题单">+</button>
+            </div>
             <ul class="list-group" id="set-list">
                 <!-- 题单列表会动态加载在这里 -->
             </ul>
         </aside>
-
         <!-- 主要内容区域 -->
         <main class="col-md-9">
             <div class="card mb-4">
                 <div class="card-body">
-                    <h5 class="card-title">我的收藏</h5>
-                    <p class="card-subtitle text-muted">pepper · 0 题</p>
-                    <div class="mt-3">
-                        <button class="btn btn-primary me-2">开始练习</button>
-                        <button class="btn btn-outline-secondary me-2">+</button>
-                        <button class="btn btn-outline-secondary">编辑</button>
-                    </div>
-                    <p class="text-muted mt-2">更新时间：几秒前</p>
-                    <div class="mt-3">
-                        <h6>进度</h6>
-                        <div class="progress" style="height: 30px;">
-                            <div class="progress-bar bg-info text-dark" style="width: 0%;" role="progressbar"
-                                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0/0 已解答
-                            </div>
-                        </div>
-                    </div>
+                    <h5 class="card-title">题目列表</h5>
                 </div>
             </div>
 
@@ -112,6 +116,41 @@
             </div>
         </main>
     </div>
+</div>
+
+<!-- 题单列表模态框 -->
+<div class="modal fade" id="searchResultModal" tabindex="-1" aria-labelledby="searchResultModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="searchResultModalLabel">题单搜索结果</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table">
+          <thead>
+            <tr>
+<!--              <th><input type="checkbox" id="select-all"></th>-->
+              <th>是否加入</th>
+              <th>题单名称</th>
+              <th>创建者</th>
+              <th>创建时间</th>
+              <th>描述</th>
+              <th>题目总量</th>
+              <th>加入人数</th>
+            </tr>
+          </thead>
+          <tbody id="search-results">
+            <!-- 搜索结果将动态插入这里 -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+        <button type="button" class="btn btn-primary" id="confirm-selection">加入刷题</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- 创建题单 Modal -->
@@ -223,6 +262,80 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+    // 监听搜索框回车事件
+    document.getElementById('search-input').addEventListener('keydown', async function(event) {
+        if (event.key === 'Enter') {  // 如果按下的是回车键
+            event.preventDefault(); // 防止页面刷新或表单提交
+            const searchQuery = event.target.value.trim();
+            if (searchQuery) {
+                try {
+                    // 发起请求到后端，获取搜索结果
+                    const response = await fetch(`/search_problem_sets?query=${searchQuery}`);
+                    const data = await response.json();
+
+                    if (data['status_code'] ) {
+                        // 清空之前的搜索结果
+                        const tbody = document.getElementById('search-results');
+                        tbody.innerHTML = '';// 清空所有内容
+                        if( data['problem_sets_list'].length > 0){
+                            // 显示新的搜索结果
+                            data['problem_sets_list'].forEach(set => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td><input type="checkbox" class="set-checkbox" data-set-id="${set.id}"></td>
+                                    <td>${set['set_name']}</td>
+                                    <td>${set['user_id']}</td>
+                                    <td>${set['created_at']}</td>
+                                    <td>${set['description']}</td>
+                                    <td>${set['total_problems']}</td>
+                                    <td>${set['members_count']}</td>
+                                `;
+                                tbody.appendChild(row);
+                            });
+                        }else{
+                            tbody.innerHTML = '<h5>搜索无结果</h5>';
+                        }
+
+                        // 显示模态框
+                        const searchResultModal = new bootstrap.Modal(document.getElementById('searchResultModal'));
+                        searchResultModal.show();
+                    } else {
+                        alert('搜索失败，请稍后再试');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('搜索失败，请稍后再试');
+                }
+            }
+        }
+    });
+
+    // 监听模态框中的“确认”按钮点击事件
+    document.getElementById('confirm-selection').addEventListener('click', function() {
+        const selectedSets = [];
+        document.querySelectorAll('.set-checkbox:checked').forEach(checkbox => {
+            selectedSets.push(checkbox.dataset.setId);
+        });
+
+        if (selectedSets.length > 0) {
+            console.log('已选择的题单ID：', selectedSets);
+            // 在这里可以进行后续处理，如将选中的题单ID发送到后端
+            fetch(`/?query=${encodeURIComponent(searchQuery)}`)
+            getSets();
+        } else {
+            // alert('请选择至少一个题单');
+            console.log('没有选择要加入的题单')
+        }
+
+        // 关闭模态框并清空数据
+        const searchResultModal = bootstrap.Modal.getInstance(document.getElementById('searchResultModal'));
+        searchResultModal.hide();
+
+        // 清空搜索框和搜索结果
+        document.getElementById('search-input').value = '';
+        document.getElementById('search-results').innerHTML = '';
+    });
+
     var current_set_id = -1;
     document.addEventListener('DOMContentLoaded', () => {
         getSets();
@@ -264,13 +377,14 @@
                                     <small>创建时间: ${created_at}</small>
                                 </div>
                                 <button class="btn btn-sm btn-outline-primary" onclick="loadSet('${set_id}')">查看</button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="deleteSet('${set_id}')">删除</button>
                             `;
 
                     // 添加到列表
                     setList.appendChild(listItem);
                 });
 
-                alert("题单获取成功！");
+                // alert("题单获取成功！");
             } else {
                 alert("题单获取失败，请稍后再试");
             }
@@ -391,20 +505,20 @@
             }
         });
     });
-document.addEventListener('DOMContentLoaded', () => {
-    // 获取页面上的所有模态框
-    const modals = document.querySelectorAll('.modal');
+    document.addEventListener('DOMContentLoaded', () => {
+        // 获取页面上的所有模态框
+        const modals = document.querySelectorAll('.modal');
 
-    // 遍历所有模态框
-    modals.forEach(modal => {
-        // 监听每个模态框的 'hidden.bs.modal' 事件
-        modal.addEventListener('hidden.bs.modal', () => {
-            // 只对特定模态框进行内容清空
-            if (modal.id === "createQuizModal") {
-                // 清空创建题单的模态框内容
-                document.getElementById("quiz-title").value = "";
-                document.getElementById("quiz-description").value = "";
-                document.querySelector("#quiz-table tbody").innerHTML = `
+        // 遍历所有模态框
+        modals.forEach(modal => {
+            // 监听每个模态框的 'hidden.bs.modal' 事件
+            modal.addEventListener('hidden.bs.modal', () => {
+                // 只对特定模态框进行内容清空
+                if (modal.id === "createQuizModal") {
+                    // 清空创建题单的模态框内容
+                    document.getElementById("quiz-title").value = "";
+                    document.getElementById("quiz-description").value = "";
+                    document.querySelector("#quiz-table tbody").innerHTML = `
                     <tr>
                         <td><input type="text" class="form-control" placeholder="题目名称"></td>
                         <td><input type="url" class="form-control" placeholder="题目链接"></td>
@@ -418,11 +532,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td><button type="button" class="btn btn-danger btn-sm remove-row-btn">删除</button></td>
                     </tr>
                 `;
-            }
+                }
 
-            if (modal.id === "createProblemModal") {
-                // 清空创建题目的模态框内容
-                document.querySelector("#problems-table tbody").innerHTML = `
+                if (modal.id === "createProblemModal") {
+                    // 清空创建题目的模态框内容
+                    document.querySelector("#problems-table tbody").innerHTML = `
                     <tr>
                         <td><input type="text" class="form-control" placeholder="题目名称"></td>
                         <td><input type="url" class="form-control" placeholder="题目链接"></td>
@@ -436,10 +550,43 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td><button type="button" class="btn btn-danger btn-sm remove-row-btn">删除</button></td>
                     </tr>
                 `;
-            }
+                }
+            });
         });
     });
-});
+
+    function clearMain() {
+        const mainContent = document.querySelector('main');
+        mainContent.innerHTML = `
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">题目列表</h5>
+                        <p class="text-muted">暂无题目</p>
+                    </div>
+                </div>
+            `;
+    }
+
+    async function deleteSet(set_id) {
+        try {
+            const response = await fetch(`/delete_set_id?set_id=${set_id}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            const responseData = response.json();
+            if (responseData['status_code']) {
+                if (set_id == current_set_id) {
+                    current_set_id = -1;
+                    clearMain();
+                }
+            }
+        } catch (error) {
+            alert(error)
+        }
+        getSets();
+    }
 
     async function loadSet(set_id) {
         try {
@@ -483,6 +630,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <th>题目名称</th>
                                 <th>难度</th>
                                 <th>完成情况</th>
+                                <th>打卡上传</th>
                             </tr>
                         </thead>
                         <tbody id="question-list">
@@ -505,6 +653,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                                      ${percentage}%
                                                 </div>
                                             </div>
+                                        </td>
+                                        <td>
+                                        <!-- 打卡上传列增加一个“打开”按钮 -->
+                                            <button class="btn btn-primary btn-sm open-upload-btn" data-problem-id="${problem.problem_id}" data-problem-name="${problem.problem_name}">打卡</button>
                                         </td>
                                     </tr>
                                 `
@@ -554,6 +706,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     });
                 }
+
+
+                // 绑定事件监听器给动态渲染的按钮
+                const openUploadBtns = document.querySelectorAll('.open-upload-btn');
+                openUploadBtns.forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const problem_id = btn.getAttribute('data-problem-id');
+                        const problem_name = btn.getAttribute('data-problem-name');
+                        openUploadModal(problem_id, problem_name);  // 打开上传页面模态框
+                    });
+                });
+
             } else {
                 alert("题目加载失败，请稍后再试");
             }
@@ -562,25 +726,193 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("题目加载失败，请稍后再试");
         }
     }
-    document.getElementById('create-problem-btn').addEventListener('click',async ()=>{
-        const tableRows = document.querySelectorAll("#problems-table tbody tr");
-            const questions = [];
 
-            // 如果表格有题目，则收集题目信息
-            tableRows.forEach(row => {
-                const name = row.querySelector("td:nth-child(1) input").value.trim();
-                const link = row.querySelector("td:nth-child(2) input").value.trim();
-                const difficulty = row.querySelector("td:nth-child(3) select").value;
+    function openUploadModal(problemId, problemName) {
+        const modalHtml = `
+        <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="uploadModalLabel">题目: ${problemName}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="upload-form">
+                            <div class="mb-3">
+                                <label for="input-text" class="form-label">输入内容</label>
+                                <textarea id="input-text" class="form-control" rows="4" placeholder="请输入相关内容"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="file-upload" class="form-label">上传图片</label>
+                                <input type="file" id="file-upload" class="form-control" accept="image/*">
+                            </div>
+                            <div class="text-center">
+                                <button type="button" class="btn btn-primary" id="status-submit">上传</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
+        uploadModal.show();
+        const uploadModalElement  = document.getElementById('uploadModal');
+    // 监听模态框关闭事件，清空表单内容
+    uploadModalElement.addEventListener('hidden.bs.modal', function () {
+        // 清空表单
+        const form = document.getElementById('upload-form');
+        form.reset(); // 清空表单内容
 
-                if (name && link && difficulty) {
-                    questions.push({name, link, difficulty});
-                }
-            });
-            const data = {
-                set_id: current_set_id,
-                questions: questions // 如果没有题目，这里将为空数组
+        // 关闭模态框时移除模态框HTML
+        uploadModal.remove();
+    });
+
+    // 将图片转换为 Base64 格式
+    function encodeImageToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                resolve(event.target.result);  // 返回 Base64 字符串
             };
-        try{
+            reader.onerror = function(error) {
+                reject('文件读取失败');
+            };
+            reader.readAsDataURL(file);  // 转换为 Base64
+        });
+    }
+
+    // 图片压缩函数
+    function compressImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const img = new Image();
+            img.src = e.target.result;
+
+            img.onload = function () {
+                // 使用Canvas进行图片压缩
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const MAX_WIDTH = 800;
+                const MAX_HEIGHT = 800;
+
+                // 获取原始图片的宽高
+                let width = img.width;
+                let height = img.height;
+
+                // 根据最大宽高，计算压缩比例
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height = Math.round(height * (MAX_WIDTH / width));
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width = Math.round(width * (MAX_HEIGHT / height));
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                // 设定Canvas尺寸
+                canvas.width = width;
+                canvas.height = height;
+
+                // 绘制图片到Canvas上并进行压缩
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // 将压缩后的图片转为Blob
+                canvas.toBlob(function (blob) {
+                    resolve(new File([blob], file.name, {type: file.type}));
+                }, file.type, 0.7); // 0.7是压缩质量（0.0 ~ 1.0）
+            };
+
+            img.onerror = function () {
+                reject('图片加载失败');
+            };
+        };
+
+        reader.onerror = function () {
+            reject('文件读取失败');
+        };
+
+        reader.readAsDataURL(file);
+    });
+}
+
+    // 处理上传表单提交
+    document.getElementById('status-submit').addEventListener('click', async function (e) {
+    e.preventDefault();
+    console.log('Submit handled and prevented!');
+
+    const inputText = document.getElementById('input-text').value;
+    const fileInput = document.getElementById('file-upload');
+    const file = fileInput.files[0];
+    if (!inputText || !file) {
+        alert("请输入内容并选择一个图片");
+        return;
+    }
+
+    // 读取文件并进行压缩
+    const compressedFile = await compressImage(file);
+    if (!compressedFile) {
+        alert("图片压缩失败，请稍后再试");
+        return;
+    }
+
+    // 将压缩后的文件转换为 Base64 编码
+    const base64Image = await encodeImageToBase64(compressedFile);
+
+    // 创建 FormData 对象
+    const formData = new FormData();
+    formData.append('problem_id', problemId);
+    formData.append('input_text', inputText);
+    formData.append('image_data', base64Image);  // 传递 Base64 编码的图片数据
+    formData.append('status', 'completed');
+
+    try {
+        const response = await fetch('/upload_solution', {
+            method: 'POST',
+            body: formData,
+        });
+        const data = await response.json();
+        console.log(data)
+        if (data['status_code']) {
+            alert('上传成功');
+            uploadModal.hide();
+        } else {
+            alert('上传失败，请稍后再试');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('上传失败，请稍后再试');
+    }
+    console.log(current_set_id);
+    loadSet(current_set_id);
+});
+
+    }
+
+    document.getElementById('create-problem-btn').addEventListener('click', async () => {
+        const tableRows = document.querySelectorAll("#problems-table tbody tr");
+        const questions = [];
+
+        // 如果表格有题目，则收集题目信息
+        tableRows.forEach(row => {
+            const name = row.querySelector("td:nth-child(1) input").value.trim();
+            const link = row.querySelector("td:nth-child(2) input").value.trim();
+            const difficulty = row.querySelector("td:nth-child(3) select").value;
+
+            if (name && link && difficulty) {
+                questions.push({name, link, difficulty});
+            }
+        });
+        const data = {
+            set_id: current_set_id,
+            questions: questions // 如果没有题目，这里将为空数组
+        };
+        try {
             // 发送请求到后端
             const response = await fetch('/create_problems', {
                 method: 'POST',
@@ -593,13 +925,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // 处理成功响应
             const responseData = await response.json();
             if (responseData['status_code']) {
-                    alert("题单创建成功！");
-                    // 关闭模态框
-                    const createProblemModal = bootstrap.Modal.getInstance(document.getElementById("createProblemModal"));
-                    createProblemModal.hide();
+                alert("题单创建成功！");
+                // 关闭模态框
+                const createProblemModal = bootstrap.Modal.getInstance(document.getElementById("createProblemModal"));
+                createProblemModal.hide();
 
-                    // 清空输入框
-                    document.querySelector("#problems-table tbody").innerHTML = `
+                // 清空输入框
+                document.querySelector("#problems-table tbody").innerHTML = `
                             <tr>
                                 <td><input type="text" class="form-control" placeholder="题目名称"></td>
                                 <td><input type="url" class="form-control" placeholder="题目链接"></td>
@@ -613,13 +945,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <td><button type="button" class="btn btn-danger btn-sm remove-problem-row-btn">删除</button></td>
                             </tr>
                         `;
-                    loadSet(current_set_id);
-                } else {
-                    alert("题单创建失败，请稍后再试");
-                }
+                loadSet(current_set_id);
+            } else {
+                alert("题单创建失败，请稍后再试");
+            }
         } catch (error) {
-                console.error('Error:', error);
-                alert("题目创建失败，请稍后再试");
+            console.error('Error:', error);
+            alert("题目创建失败，请稍后再试");
         }
     });
 </script>

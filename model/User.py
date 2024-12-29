@@ -46,7 +46,6 @@ class User:
             return jsonify({'status_code': False, 'message': '注册失败', 'account': data['account']})
 
     def get_user_id(self,account):
-
         self.cursor.execute("select * from users where account=%s",(account))
         result = self.cursor.fetchone()
         if result is not None:

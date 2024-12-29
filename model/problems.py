@@ -70,3 +70,8 @@ class Problems:
             info_map['user_id'] = problem_info[5]
             problems_info_list_map.append(info_map)
         return problems_info_list_map
+
+    def delete_problems_id_list(self, problems_id_list):
+        for problem_id in problems_id_list:
+            self.cursor.execute('delete from problems where problem_id=%s',(problem_id,))
+        MySQLConnection().get_connection().commit()
