@@ -20,8 +20,20 @@ class UserSubscriptions:
             Logger().get_logger().info(f"没有找到 {set_id} - {user_id}")
             return False
 
-    def create(self,set_id,user_id):
-        self.cursor.execute("insert into user_subscriptions (user_id,set_id,authority) values (%s,%s,%s)",(user_id,set_id,True))
+    def check_exist_authority(self,set_id,user_id, authority):
+        print(f"set_id: {set_id}, user_id: {user_id}, authority: {authority}")
+        self.cursor.execute("select * from user_subscriptions where set_id=%s and user_id=%s and authority=%s", (set_id,user_id,authority))
+        result = self.cursor.fetchone()
+        if result is not None:
+            Logger().get_logger().info(f"找到 {set_id} - {user_id}")
+            return True
+        else:
+            Logger().get_logger().info(f"没有找到 {set_id} - {user_id}")
+            return False
+
+    def create(self,set_id,user_id,authority):
+        print(f'set_id: {set_id}, user_id: {user_id}, authority: {authority}')
+        self.cursor.execute("insert into user_subscriptions (user_id,set_id,authority) values (%s,%s,%s)",(user_id,set_id,authority))
         MySQLConnection().get_connection().commit()
 
     def get_set_except_user_id_list(self,user_id):
@@ -54,3 +66,15 @@ class UserSubscriptions:
             if result is not None:
                 user_id_list.append(result[0])
         return user_id_list
+
+    def count_member(self,set_id):
+        self.cursor.execute('select count(*) from user_subscriptions where set_id=%s',(set_id))
+        result = self.cursor.fetchone()
+        if result is not None:
+            return result[0]
+        else:
+            return 0
+
+    def delete_info(self,user_id,set_id):
+        self.cursor.execute('delete from user_subscriptions where user_id=%s and set_id=%s',(user_id,set_id))
+        MySQLConnection().get_connection().commit()

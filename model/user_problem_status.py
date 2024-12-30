@@ -51,3 +51,7 @@ class UserProblemStatus:
     def refreshStatus(self,user_id, problem_id,status, input_text, image_data):
         self.cursor.execute('update user_problem_status set status=%s,description=%s,image=%s where user_id=%s and problem_id=%s',(status,input_text,image_data,user_id,problem_id))
         MySQLConnection().get_connection().commit()
+
+    def delete_problem_id(self,user_id,problem_id):
+        self.cursor.execute('delete from user_problem_status where user_id=%s and problem_id=%s',(user_id,problem_id))
+        MySQLConnection().get_connection().commit()

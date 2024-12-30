@@ -40,10 +40,9 @@ def index():
 def login():
     user_info = request.get_json()
     Logger().get_logger().info(user_info)
-    user = User()
-    resp = make_response(user.login(user_info))
+    resp = make_response(User().login(user_info)) # account,password
     # 设置一个 Cookie（例如，保存用户名）
-    resp.set_cookie('user_info', json.dumps(user_info), expires=datetime.datetime.now() + datetime.timedelta(days=1))
+    resp.set_cookie('user_info', json.dumps(user_info), expires=datetime.datetime.now())
     return resp
 
 @app.route('/register',methods=['POST'])
@@ -62,15 +61,17 @@ def create_problems():
     user_info_str = request.cookies.get('user_info')
     user_info = json.loads(user_info_str)
     user_id = User().get_user_id(user_info['account'])
-
     data = request.get_json()
-    Problems().create_problems(data['questions'],user_id)
-    problems_id_list = []
-    for problem in data['questions']:
-        problems_id_list.append(Problems().get_problem_id_by_problem_name(problem['name']))
-    ProblemSetProblems().insert_problems(data['set_id'],problems_id_list)
-    UserProblemStatus().create(user_id,problems_id_list)
-    return jsonify({'status_code':True,'message':'新增题目成功'}),201
+    if UserSubscriptions().check_exist_authority(data['set_id'],user_id,True):
+        Problems().create_problems(data['questions'],user_id)
+        problems_id_list = []
+        for problem in data['questions']:
+            problems_id_list.append(Problems().get_problem_id_by_problem_name(problem['name']))
+        ProblemSetProblems().insert_problems(data['set_id'],problems_id_list)
+        UserProblemStatus().create(user_id,problems_id_list)
+        return jsonify({'status_code':True,'message':'新增题目成功'}),201
+    else:
+        return jsonify({'status_code':False,'message':'你无权创建题目'}),201
 
 
 @app.route('/create_set', methods=['POST'])
@@ -149,14 +150,22 @@ def delete_set_id():
     user_id = User().get_user_id(user_info['account'])
     # 由于 set_id 是唯一的，只需要通过 set_id 查找就可以了
     set_id = int(request.args.get('set_id', 0))
-    problems_id_list = ProblemSetProblems().get_problems_list(set_id)
-    ProblemSetProblems().delete_set_id(set_id)
-    ProblemSets().delete_set_id(set_id)
-    Problems().delete_problems_id_list(problems_id_list)
-    UserProblemStatus().delete_problems_id_list(problems_id_list)
-    UserSubscriptions().delete_set_id(set_id)
-    print('删除成功')
-    return jsonify({'status_code':True,'message':'题单删除成功'}),201
+    if UserSubscriptions().check_exist(set_id,user_id):
+        problems_id_list = ProblemSetProblems().get_problems_list(set_id)
+        if UserSubscriptions().check_exist_authority(set_id,user_id,True):
+            ProblemSetProblems().delete_set_id(set_id)
+            ProblemSets().delete_set_id(set_id)
+            Problems().delete_problems_id_list(problems_id_list)
+            UserProblemStatus().delete_problems_id_list(problems_id_list)
+            UserSubscriptions().delete_set_id(set_id)
+            print('删除成功')
+        else:
+            for problem_id in problems_id_list:
+                UserProblemStatus().delete_problem_id(user_id,problem_id)
+                UserSubscriptions().delete_info(user_id,set_id)
+        return jsonify({'status_code':True,'message':'题单删除成功'}),201
+    else:
+        return jsonify({'status_code':False,'message':'无权删除'}),201
 
 @app.route('/upload_solution',methods=['POST'])
 def upload_solution():
@@ -182,23 +191,76 @@ def upload_solution():
 
 @app.route('/search_problem_sets',methods=['GET'])
 def search_problem_sets():
-    return jsonify({'status_code': True,
-                    'message': '查找所有问题集成功'}), 201
+    # set_id,set_name,user_id,created_at,description,total_problems,members_count
+    user_info_str = request.cookies.get('user_info')
+    user_info = json.loads(user_info_str)
+    user_id = User().get_user_id(user_info['account'])
 
-    set_name = request.args.get('set_name')
-    set_id_list = ProblemSets().get_problem_sets_list_by_name(set_name)
-    problem_sets_list = ProblemSets().get_problem_sets_list(set_id_list)
-    user_id_list = UserSubscriptions().get_user_id_list(set_id_list)
+    set_name = str(request.args.get('set_name', ''))
+    set_id_list = ProblemSets().get_set_id_list(set_name)
+    user_id_list = UserSubscriptions().get_user_id_list(set_id_list) # user_id
+
+    problem_sets_list = ProblemSets().get_problem_sets_list(set_id_list) # set_id,set_name,created_at,description
+    for i in range(len(problem_sets_list)):
+        if UserSubscriptions().check_exist(set_id_list[i],user_id):
+            set_id_list.remove(set_id_list[i])
+            user_id_list.remove(user_id_list[i])
+            problem_sets_list.remove(problem_sets_list[i])
+    account_list = []
+    for user_id in user_id_list:
+        account_list.append(User().get_account(user_id))
+    # print('user_id_list: ',user_id_list)
+    # print('set_id_list: ',set_id_list)
     for i in range(len(user_id_list)):
         problem_sets_list[i].append(user_id_list[i])
+    # print('problem_sets_list: ',problem_sets_list)
+    count_problem_set_list = []
+    for set_id in set_id_list:
+        count_problem_set_list.append(ProblemSetProblems().count_problem_set(set_id))
+    count_problem_set_member_list = []
+    for set_id in set_id_list:
+        count_problem_set_member_list.append(UserSubscriptions().count_member(set_id))
     print(problem_sets_list)
+    set_data_list = []
+    for i in range(len(problem_sets_list)):
+        set_data = dict()
+        set_data['set_id'] = set_id_list[i]
+        set_data['set_name'] = set_name
+        set_data['account'] = account_list[i]
+        set_data['created_at'] = problem_sets_list[i][2]
+        set_data['description'] = problem_sets_list[i][3]
+        set_data['total_problems'] = count_problem_set_list[i]
+        set_data['members_count'] = count_problem_set_member_list[i]
+        set_data_list.append(set_data)
+    print('set_data_list: ',set_data_list)
     return jsonify({'status_code': True,
                     'message': '查找所有问题集成功',
-                    'problem_sets_list': problem_sets_list}), 201
+                    'set_data_list': set_data_list}), 201
+
+@app.route('/join_problem_set',methods=['POST'])
+def join_problem_set():
+    user_info_str = request.cookies.get('user_info')
+    user_info = json.loads(user_info_str)
+    user_id = User().get_user_id(user_info['account'])
+
+    set_id_list = request.json.get('set_id_list')
+    print('set_id_list: ', set_id_list)
+    for set_id in set_id_list:
+        UserSubscriptions().create(set_id,user_id,False)
+        problems_id_list = ProblemSetProblems().get_problems_list(set_id)
+        UserProblemStatus().create(user_id, problems_id_list)
+    return jsonify({'status_code': True,'message':'加入成功'}),201
 
 @app.route('/main/delete_problem',methods=['GET'])
 def delete_problem():
     pass
+
+@app.route('/get_account_info',methods=['GET'])
+def get_account_info():
+    user_info_str = request.cookies.get('user_info_str')
+    user_info = json.loads(user_info_str)
+    print('user_info: ', user_info)
+    return jsonify({'status_code':True,'message':'获取用户信息成功','user_id': user_info}),201
 
 if __name__=='__main__':
     MySQLConnection('C:\\Users\\33007\\Desktop\\刷题网站\\多人在线刷题记录提交网站\\mysql_config.yml').get_connection()

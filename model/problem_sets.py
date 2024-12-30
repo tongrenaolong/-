@@ -80,7 +80,7 @@ class ProblemSets:
                 UserSubscriptions().check_exist(set_id,user_id)
                 # set_id = self.get_set_id(user_id,data['title']) # 必须保证一个 user 创建的 题单 是不重名的
                 # 在 user_subscriptions 中设置 set_id,user_id
-                UserSubscriptions().create(set_id,user_id)
+                UserSubscriptions().create(set_id,user_id,True)
                 # 在 problems 中创建题目，并获取 problem_id
                 problems_id_list = Problems().create_problems(data['questions'],user_id)
                 # 在 problem_set_problems 中设置 set_id,problem_id
@@ -104,6 +104,7 @@ class ProblemSets:
 
     def get_problem_sets_list(self,set_id_list):
         problem_sets_list = []
+        print('set_id_list: ',set_id_list)
         for set_id in set_id_list:
             self.cursor.execute("select * from problem_sets where set_id=%s",(set_id,))
             result = self.cursor.fetchall()
@@ -114,6 +115,7 @@ class ProblemSets:
 
     def get_problem_sets_list_by_name(self,set_name):
         problem_sets_list = []
+        print(set_name)
         self.cursor.execute("select * from problem_sets where set_name=%s",(set_name,))
         result = self.cursor.fetchall()
         if result is not None:

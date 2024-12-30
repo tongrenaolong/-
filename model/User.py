@@ -9,6 +9,7 @@ class User:
         self.cursor = mysql_config.MySQLConnection().get_cursor()
 
     def login(self,data):
+        print('data: ',data)
         if data is None:
             return jsonify({'status_code': False, 'message': '请先登录'})
         password = hashlib.md5(data['password'].encode()).hexdigest()
@@ -55,4 +56,11 @@ class User:
             Logger().get_logger().info(f"没有找到 {account}")
             return None
 
+    def get_account(self,user_id):
+        self.cursor.execute('select account from users where user_id=%s',(user_id))
+        result = self.cursor.fetchone()
+        if result is not None:
+            return result[0]
+        else:
+            return ''
 

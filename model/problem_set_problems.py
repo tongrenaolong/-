@@ -38,3 +38,10 @@ class ProblemSetProblems:
         self.cursor.execute('delete from problem_set_problems where set_id=%s',(set_id))
         MySQLConnection().get_connection().commit()
 
+    def count_problem_set(self,set_id):
+        self.cursor.execute('select count(*) from problem_set_problems where set_id=%s',(set_id))
+        result = self.cursor.fetchone()
+        if result is not None:
+            return result[0]
+        else:
+            return 0
