@@ -263,5 +263,5 @@ def get_account_info():
     return jsonify({'status_code':True,'message':'获取用户信息成功','user_id': user_info}),201
 
 if __name__=='__main__':
-    MySQLConnection('C:\\Users\\33007\\Desktop\\刷题网站\\多人在线刷题记录提交网站\\mysql_config.yml').get_connection()
+    MySQLConnection('./mysql_config.yml').get_connection()
     app.run(debug=True)

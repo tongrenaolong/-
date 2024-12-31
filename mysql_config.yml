@@ -3,4 +3,4 @@ mysql:
   port: '3306'
   username: 'root'
   password: 'Chenyx@1314'
-  database: 'onlinerecord'
+  database: 'OnlineRecord'
