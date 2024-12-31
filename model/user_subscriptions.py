@@ -33,8 +33,13 @@ class UserSubscriptions:
 
     def create(self,set_id,user_id,authority):
         print(f'set_id: {set_id}, user_id: {user_id}, authority: {authority}')
-        self.cursor.execute("insert into user_subscriptions (user_id,set_id,authority) values (%s,%s,%s)",(user_id,set_id,authority))
-        MySQLConnection().get_connection().commit()
+        try:
+            self.cursor.execute("insert into user_subscriptions (user_id,set_id,authority) values (%s,%s,%s)",(user_id,set_id,authority))
+        except Exception as e:
+            Logger().get_logger().error(e)
+            Logger().get_logger().error(f'{set_id}:{user_id}:{authority} 创建失败')
+            raise e
+        # MySQLConnection().get_connection().commit()
 
     def get_set_except_user_id_list(self,user_id):
         set_except_user_id_list = []
@@ -55,8 +60,11 @@ class UserSubscriptions:
         return set_id_list
 
     def delete_set_id(self,set_id):
-        self.cursor.execute('delete from user_subscriptions where set_id=%s',(set_id))
-        MySQLConnection().get_connection().commit()
+        try:
+            self.cursor.execute('delete from user_subscriptions where set_id=%s', (set_id))
+        except Exception as e:
+            Logger().get_logger().error(f'{set_id} 删除失败')
+            raise e
 
     def get_user_id_list(self,set_id_list):
         user_id_list = []
@@ -76,5 +84,8 @@ class UserSubscriptions:
             return 0
 
     def delete_info(self,user_id,set_id):
-        self.cursor.execute('delete from user_subscriptions where user_id=%s and set_id=%s',(user_id,set_id))
-        MySQLConnection().get_connection().commit()
+        try:
+            self.cursor.execute('delete from user_subscriptions where user_id=%s and set_id=%s', (user_id, set_id))
+        except Exception as e:
+            Logger().get_logger().error(f'{user_id}:{set_id} 删除失败')
+            raise e

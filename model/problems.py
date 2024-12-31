@@ -2,6 +2,7 @@ from utils import mysql_config
 from utils.logger import Logger
 from utils.mysql_config import MySQLConnection
 
+# problems_index = 0
 class Problems:
     def __init__(self):
         self.cursor = mysql_config.MySQLConnection().get_cursor()
@@ -35,17 +36,19 @@ class Problems:
             Logger().get_logger().info(f"problems 没有对应的 {link},{user_id}")
             return None
 
-    def create_problems(self,problems,user_id):
+    def create_problems(self,problems_list,user_id):
         problems_id_list = []
-        for problem in problems:
-            problem_id = self.get_problem_id(problem['link'],user_id)
-            if problem_id is None:
-                self.cursor.execute("insert into problems (problem_name,link,difficulty,user_id) values (%s,%s,%s,%s)", (problem['name'],problem['link'],problem['difficulty'],user_id))
-                Logger().get_logger().info(f"插入数据 {problem} - {user_id}")
-                MySQLConnection().get_connection().commit()
-            problem_id = self.get_problem_id(problem['link'], user_id)
-            problems_id_list.append(problem_id)
-        return problems_id_list
+        try:
+            for problem in problems_list:
+                problem_id = self.get_problem_id(problem['link'],user_id) # 判断题是否存在
+                if problem_id is None:
+                    self.cursor.execute("insert into problems (problem_name,link,difficulty,user_id) values (%s,%s,%s,%s)", (problem['name'],problem['link'],problem['difficulty'],user_id))
+                    problems_id_list.append(self.cursor.lastrowid)
+                    Logger().get_logger().info(f"插入数据 {problem} - {user_id}")
+            return problems_id_list
+        except Exception as e:
+            Logger().get_logger().error(f'{user_id}:{problems_list} 创建失败; {e}')
+            raise e
 
     def get_problems_info_list(self,problems_id_list):
         problems_info_list = []
@@ -72,6 +75,9 @@ class Problems:
         return problems_info_list_map
 
     def delete_problems_id_list(self, problems_id_list):
-        for problem_id in problems_id_list:
-            self.cursor.execute('delete from problems where problem_id=%s',(problem_id,))
-        MySQLConnection().get_connection().commit()
+        try:
+            for problem_id in problems_id_list:
+                self.cursor.execute('delete from problems where problem_id=%s',(problem_id,))
+        except Exception as e:
+            Logger().get_logger().error(f'{problems_id_list} 删除失败')
+            raise e

@@ -403,7 +403,7 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
                 getSets();
                 console.log('题单加入成功');
             } else {
-                alert('加入题单失败，请稍后再试');
+                alert(data['message']);
             }
 
         } catch (err) {
@@ -440,8 +440,7 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
     //     }
     // });
         document.addEventListener('DOMContentLoaded', () => {
-        getSets();
-
+            getSets();
     });
 
     async function getSets() {
@@ -454,9 +453,6 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
                 }
             });
 
-            // if (!response.ok) {
-            //     throw new Error('题单获取失败，请稍后再试');
-            // }
             // 处理成功响应
             const responseData = await response.json();
             if (responseData['status_code']) {
@@ -575,7 +571,7 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
                 // 处理成功响应
                 const responseData = await response.json();
                 if (responseData['status_code']) {
-                    alert("题单创建成功！");
+                    // alert("题单创建成功！");
                     // 关闭模态框
                     const createQuizModal = bootstrap.Modal.getInstance(document.getElementById("createQuizModal"));
                     createQuizModal.hide();
@@ -601,7 +597,6 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
                 } else {
                     alert("题单创建失败，请稍后再试");
                 }
-
             } catch (error) {
                 console.error('Error:', error);
                 alert("题单创建失败，请稍后再试");
@@ -659,6 +654,7 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
     });
 
     function clearMain() {
+        current_set_id = -1;
         const mainContent = document.querySelector('main');
         mainContent.innerHTML = `
                 <div class="card mb-4">
@@ -684,6 +680,7 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
                 if (set_id === current_set_id) {
                     current_set_id = -1;
                     clearMain();
+                    getSets();
                 }else{
                     getSets();
                 }
@@ -696,6 +693,11 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
     }
 
     async function loadSet(set_id) {
+        if(set_id === -1) {
+            clearMain();
+            getSets();
+            return;
+        }
         try {
             current_set_id = set_id
             // 请求题单详情
@@ -709,7 +711,7 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
             const responseData = await response.json();
             if (responseData['status_code']) {
                 const problems_info_list = responseData['problems_info_list'];
-
+                const authority = responseData['authority'];
                 // 获取主页面区域
                 const mainContent = document.querySelector('main');
 
@@ -720,7 +722,7 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
                         <h5 class="card-title">
                         题目列表
                         </h5>
-            `;
+                `;
 
                 // 如果问题列表为空，显示“暂无题目”
                 if (problems_info_list.length === 0 || problems_info_list.every(list => list.length === 0)) {
@@ -754,10 +756,12 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
                                         <td>${problem.difficulty}</td>
                                         <td>
                                             <!-- 显示进度条和百分比 -->
-                                            <div class="progress" style="height: 20px;">
+                                            <div class="progress" style="height: 20px; position: relative;">
                                                 <div class="progress-bar bg-info text-dark" style="width: ${percentage}%" role="progressbar"
                                                      aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100">
-                                                     ${percentage}%
+                                                    <span style="position: absolute; width: 100%; text-align: center; color: black;">
+                                                        ${problem.completed} / ${problem.all}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
@@ -772,7 +776,7 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
                         </tbody>
                     </table>
                     <div class="text-center">
-                        <button class="btn btn-dark btn-lg" id="add-question-btn2" style="width: 100%;">+ 添加题目</button>
+                        <button class="btn btn-dark btn-lg" id="add-question-btn2" style="width: 100%;" ${authority === false ? 'disabled' : ''}>+ 添加题目</button>
                     </div>
                 `;
                 }
@@ -824,7 +828,6 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
                         openUploadModal(problem_id, problem_name);  // 打开上传页面模态框
                     });
                 });
-
             } else {
                 alert("题目加载失败，请稍后再试");
             }
@@ -973,6 +976,7 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
 
     // 创建 FormData 对象
     const formData = new FormData();
+    formData.append('set_id', current_set_id);
     formData.append('problem_id', problemId);
     formData.append('input_text', inputText);
     formData.append('image_data', base64Image);  // 传递 Base64 编码的图片数据
@@ -989,7 +993,10 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
             alert('上传成功');
             uploadModal.hide();
         } else {
-            alert('上传失败，请稍后再试');
+            uploadModal.hide();
+            clearMain();
+            getSets();
+            alert(data['message']);
         }
     } catch (error) {
         console.error('Error:', error);
