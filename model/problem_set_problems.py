@@ -20,11 +20,13 @@ class ProblemSetProblems:
             return False
 
     def insert_problems(self,set_id,problems_id_list):
-        for problem_id in problems_id_list:
-            self.cursor.execute("insert into problem_set_problems (set_id,problem_id) values(%s,%s)",(set_id,problem_id))
-            MySQLConnection().get_connection().commit()
-            Logger().get_logger().info(f"insert into {set_id},{problem_id}")
-
+        try:
+            for problem_id in problems_id_list:
+                self.cursor.execute("insert into problem_set_problems (set_id,problem_id) values(%s,%s)",(set_id,problem_id))
+                Logger().get_logger().info(f"insert into {set_id},{problem_id}")
+        except Exception as e:
+            Logger().get_logger().error(f'{set_id}:{problems_id_list} 添加失败; {e}')
+            raise e
     def get_problems_list(self,set_id):
         self.cursor.execute('select problem_id from problem_set_problems where set_id=%s',(set_id))
         result = self.cursor.fetchall()
@@ -35,8 +37,11 @@ class ProblemSetProblems:
         return problems_list
 
     def delete_set_id(self,set_id):
-        self.cursor.execute('delete from problem_set_problems where set_id=%s',(set_id))
-        MySQLConnection().get_connection().commit()
+        try:
+            self.cursor.execute('delete from problem_set_problems where set_id=%s',(set_id))
+        except Exception as e:
+            Logger().get_logger().error(f'{set_id} 删除失败')
+            raise e
 
     def count_problem_set(self,set_id):
         self.cursor.execute('select count(*) from problem_set_problems where set_id=%s',(set_id))
