@@ -25,8 +25,10 @@ CREATE TABLE IF NOT EXISTS problems (
     upload_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     difficulty ENUM('easy', 'medium', 'hard') NOT NULL,  -- 题目的难度
     user_id INT NOT NULL,  -- 上传者的用户 ID，作为联合主键的一部分
-    CONSTRAINT problems_unique_user_link UNIQUE (user_id, link), -- 联合主键
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE -- user_id 同时为外键
+    set_id INT NOT NULL,
+    CONSTRAINT problems_unique_user_link UNIQUE (user_id, link,set_id), -- 联合主键
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE, -- user_id 同时为外键
+    FOREIGN KEY (set_id) REFERENCES problem_sets(set_id) ON DELETE CASCADE -- set_id 同时为外键
 );
 
 -- 刷题状态表
@@ -50,12 +52,4 @@ CREATE TABLE IF NOT EXISTS user_subscriptions (
     PRIMARY KEY (user_id, set_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (set_id) REFERENCES problem_sets(set_id) ON DELETE CASCADE
-);
--- 题单与题目关联表
-CREATE TABLE IF NOT EXISTS problem_set_problems (
-    set_id INT,
-    problem_id INT,
-    PRIMARY KEY (set_id, problem_id),
-    FOREIGN KEY (set_id) REFERENCES problem_sets(set_id) ON DELETE CASCADE,
-    FOREIGN KEY (problem_id) REFERENCES problems(problem_id) ON DELETE CASCADE
 );
