@@ -77,8 +77,7 @@
             </ul>
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item"><a class="nav-link" href="#">🔔</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" id="account-link">{{ account }}</a></li>
-                <li class="nav-item"><a class="btn btn-warning btn-sm" href="#">Plus 会员</a></li>
+                <li class="nav-item"><a class="nav-link" href="#" id="account-link">{{ session['user_info']['account'] }}</a></li>
             </ul>
         </div>
     </div>
@@ -457,12 +456,13 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
             const responseData = await response.json();
             if (responseData['status_code']) {
                 const sets = responseData['sets'];
+                console.log(sets)
                 const setList = document.getElementById('set-list');
                 setList.innerHTML = '';
                 // 遍历题单数据并添加到列表
                 sets.forEach(set => {
                     console.log(set)
-                    const [set_id, set_name, created_at, description, authority] = set;
+                    const {set_id, set_name, created_at, description} = set;
 
                     // 创建新的列表项
                     const listItem = document.createElement('li');
@@ -542,12 +542,12 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
 
             // 如果表格有题目，则收集题目信息
             tableRows.forEach(row => {
-                const name = row.querySelector("td:nth-child(1) input").value.trim();
+                const problem_name = row.querySelector("td:nth-child(1) input").value.trim();
                 const link = row.querySelector("td:nth-child(2) input").value.trim();
                 const difficulty = row.querySelector("td:nth-child(3) select").value;
 
-                if (name && link && difficulty) {
-                    questions.push({name, link, difficulty});
+                if (problem_name && link && difficulty) {
+                    questions.push({problem_name, link, difficulty});
                 }
             });
 
@@ -746,7 +746,7 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
                             ${problems_info_list.map(
                         (problem) => {
                             // var completion_rate = problem.completion_rate || 0; // 获取题目的完成情况，默认为0
-
+                            console.log
                             var completion_rate = problem.completed / problem.all
                             const percentage = Math.round(completion_rate * 100); // 将小数转换为百分比
                             return `
@@ -864,92 +864,92 @@ document.getElementById('confirm-selection').addEventListener('click', async fun
                 </div>
             </div>
         </div>
-    `;
+        `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         const uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
         uploadModal.show();
         const uploadModalElement  = document.getElementById('uploadModal');
-    // 监听模态框关闭事件，清空表单内容
-    uploadModalElement.addEventListener('hidden.bs.modal', function () {
-        // 清空表单
-        const form = document.getElementById('upload-form');
-        form.reset(); // 清空表单内容
+        // 监听模态框关闭事件，清空表单内容
+        uploadModalElement.addEventListener('hidden.bs.modal', function () {
+            // 清空表单
+            const form = document.getElementById('upload-form');
+            form.reset(); // 清空表单内容
 
-        // 关闭模态框时移除模态框HTML
-        uploadModal.remove();
-    });
-
-    // 将图片转换为 Base64 格式
-    function encodeImageToBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                resolve(event.target.result);  // 返回 Base64 字符串
-            };
-            reader.onerror = function(error) {
-                reject('文件读取失败');
-            };
-            reader.readAsDataURL(file);  // 转换为 Base64
+            // 移除模态框HTML
+            uploadModalElement.remove();
         });
-    }
 
-    // 图片压缩函数
-    function compressImage(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            const img = new Image();
-            img.src = e.target.result;
+        // 将图片转换为 Base64 格式
+        function encodeImageToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    resolve(event.target.result);  // 返回 Base64 字符串
+                };
+                reader.onerror = function(error) {
+                    reject('文件读取失败');
+                };
+                reader.readAsDataURL(file);  // 转换为 Base64
+            });
+        }
 
-            img.onload = function () {
-                // 使用Canvas进行图片压缩
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                const MAX_WIDTH = 800;
-                const MAX_HEIGHT = 800;
+        // 图片压缩函数
+        function compressImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = new Image();
+                    img.src = e.target.result;
 
-                // 获取原始图片的宽高
-                let width = img.width;
-                let height = img.height;
+                    img.onload = function () {
+                        // 使用Canvas进行图片压缩
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const MAX_WIDTH = 800;
+                        const MAX_HEIGHT = 800;
 
-                // 根据最大宽高，计算压缩比例
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height = Math.round(height * (MAX_WIDTH / width));
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width = Math.round(width * (MAX_HEIGHT / height));
-                        height = MAX_HEIGHT;
-                    }
-                }
+                        // 获取原始图片的宽高
+                        let width = img.width;
+                        let height = img.height;
 
-                // 设定Canvas尺寸
-                canvas.width = width;
-                canvas.height = height;
+                        // 根据最大宽高，计算压缩比例
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height = Math.round(height * (MAX_WIDTH / width));
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width = Math.round(width * (MAX_HEIGHT / height));
+                                height = MAX_HEIGHT;
+                            }
+                        }
 
-                // 绘制图片到Canvas上并进行压缩
-                ctx.drawImage(img, 0, 0, width, height);
+                        // 设定Canvas尺寸
+                        canvas.width = width;
+                        canvas.height = height;
 
-                // 将压缩后的图片转为Blob
-                canvas.toBlob(function (blob) {
-                    resolve(new File([blob], file.name, {type: file.type}));
-                }, file.type, 0.7); // 0.7是压缩质量（0.0 ~ 1.0）
-            };
+                        // 绘制图片到Canvas上并进行压缩
+                        ctx.drawImage(img, 0, 0, width, height);
 
-            img.onerror = function () {
-                reject('图片加载失败');
-            };
-        };
+                        // 将压缩后的图片转为Blob
+                        canvas.toBlob(function (blob) {
+                            resolve(new File([blob], file.name, {type: file.type}));
+                        }, file.type, 0.7); // 0.7是压缩质量（0.0 ~ 1.0）
+                    };
 
-        reader.onerror = function () {
-            reject('文件读取失败');
-        };
+                    img.onerror = function () {
+                        reject('图片加载失败');
+                    };
+                };
 
-        reader.readAsDataURL(file);
-    });
-}
+                reader.onerror = function () {
+                    reject('文件读取失败');
+                };
+
+                reader.readAsDataURL(file);
+            });
+        }
 
     // 处理打卡表单的提交
     document.getElementById('status-submit').addEventListener('click', async function (e) {

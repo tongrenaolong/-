@@ -1,60 +1,25 @@
 import hashlib
 from flask import jsonify
-from utils import mysql_config
 from utils.logger import Logger
+from model.database import db
+# 用户表
+class User(db.Model):
+    __tablename__ = 'users'
 
+    user_id = db.Column(db.Integer, primary_key=True)
+    account = db.Column(db.String(100), unique=True, nullable=False)
+    username = db.Column(db.String(100), nullable=False, default='bite')
+    password = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-class User:
-    def __init__(self):
-        self.cursor = mysql_config.MySQLConnection().get_cursor()
+    # relationships
+    # problems = db.relationship('Problems', backref='user', lazy=True)
+    # 使用 lazy 避免循环引用
+    # user_problem_status = db.relationship('UserProblemStatus', backref='user', lazy=True)
+    # user_subscriptions = db.relationship('UserSubscriptions', backref='user', lazy=True)
+    problems = db.relationship('Problems', back_populates='user', lazy=True)
+    user_problem_status = db.relationship('UserProblemStatus', back_populates='user', lazy=True)
+    user_subscriptions = db.relationship('UserSubscriptions', back_populates='user', lazy=True)
 
-    def login(self,data):
-        print('data: ',data)
-        if data is None:
-            return jsonify({'status_code': False, 'message': '请先登录'})
-        password = hashlib.md5(data['password'].encode()).hexdigest()
-        Logger().get_logger().info(f"account: {data['account']}, password: {password}")
-
-        self.cursor.execute("select * from users where account=%s and password=%s",(data['account'],password,))
-
-        # 获取查询结果
-        result = self.cursor.fetchone()
-        print(result)
-        if result:
-            print("Login successful!")
-            return jsonify({'status_code': True, 'message': '登录成功', 'account': data['account']})
-        else:
-            print("Invalid username or password.")
-            return jsonify({'status_code': False, 'message': '登录失败', 'account': data['account']})
-
-    def register(self,data):
-        password = hashlib.md5(data['password'].encode()).hexdigest()
-        Logger().get_logger().info(f"account: {data['account']}, username: {data['username']}, password: {password}")
-        try:
-            mysql_config.MySQLConnection().get_connection().begin()
-            self.cursor.execute("insert into users (account,username,password)  values(%s,%s,%s)",(data['account'],data['username'],password))
-
-            mysql_config.MySQLConnection().get_connection().commit()
-        except Exception as e:
-            Logger().get_logger().error(e)
-            mysql_config.MySQLConnection().get_connection().rollback()
-            raise e
-
-    def get_user_id(self,account):
-        self.cursor.execute("select * from users where account=%s",(account))
-        result = self.cursor.fetchone()
-        if result is not None:
-            Logger().get_logger().info(result[0])
-            return result[0]
-        else:
-            Logger().get_logger().info(f"没有找到 {account}")
-            return None
-
-    def get_account(self,user_id):
-        self.cursor.execute('select account from users where user_id=%s',(user_id))
-        result = self.cursor.fetchone()
-        if result is not None:
-            return result[0]
-        else:
-            return None
-
+    def __repr__(self):
+        return f'<User {self.user_id},{self.account},{self.username},{self.password},{self.created_at}>'

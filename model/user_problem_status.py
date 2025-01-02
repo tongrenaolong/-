@@ -1,66 +1,21 @@
 from utils import mysql_config
 from utils.logger import Logger
+from model.database import db
 
-class UserProblemStatus:
-    def __init__(self):
-        self.cursor = mysql_config.MySQLConnection().get_cursor()
+# 刷题状态表
+class UserProblemStatus(db.Model):
+    __tablename__ = 'user_problem_status'
 
-    def get_user_problem_status_list(self,problem_id_list):
-        status_list = []
-        for problem_id in problem_id_list:
-            tem = []
-            self.cursor.execute('select count(*) from user_problem_status where problem_id=%s',(problem_id,))
-            result = self.cursor.fetchone()
-            if result is not None:
-                print("result: ",result)
-                tem.append(result[0])
-            self.cursor.execute('select count(*) from user_problem_status where problem_id=%s and status="completed"',(problem_id,))
-            result = self.cursor.fetchone()
-            if result is not None:
-                print("result: ",result)
-                tem.append(result[0])
-            status_list.append(tem)
-        return status_list
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), primary_key=True)
+    problem_id = db.Column(db.Integer, db.ForeignKey('problems.problem_id'), primary_key=True)
+    status = db.Column(db.Enum('not_started', 'completed'), default='not_started')
+    time_spent = db.Column(db.Integer, default=0)  # time in seconds
+    description = db.Column(db.Text, default=None)
+    image = db.Column(db.LargeBinary, default=None)
 
-    def get_user_problem_status(self,user_id,problem_id_list):
-        user_problem_status = []
-        for problem_id in problem_id_list:
-            print(user_id,problem_id)
-            self.cursor.execute('select status from user_problem_status where user_id=%s and problem_id=%s',(user_id,problem_id))
-            result = self.cursor.fetchone()
-            if result is not None:
-                user_problem_status.append(result[0])
-            else:
-                print("get_user_problem_status None")
-        return user_problem_status
+    # relationships
+    user = db.relationship('User', back_populates='user_problem_status', lazy=True)
+    problems = db.relationship('Problems', back_populates='problem_statuses', lazy=True)
 
-    def create(self,user_id, problems_id_list):
-        try:
-            for problem_id in problems_id_list:
-                self.cursor.execute('insert into user_problem_status (user_id, problem_id) values (%s, %s)',(user_id,problem_id))
-        except Exception as e:
-            Logger().get_logger().info(f'{user_id}:{problems_id_list} 创建失败')
-            raise e
-
-    def delete_problems_id_list(self,problems_id_list):
-        try:
-            for problem_id in problems_id_list:
-                self.cursor.execute('delete from user_problem_status where problem_id=%s',(problem_id))
-        except Exception as e:
-            Logger().get_logger().error(f'{problems_id_list} 删除失败')
-            raise e
-
-    def refreshStatus(self,user_id, problem_id,status, input_text, image_data):
-        try:
-            self.cursor.execute('update user_problem_status set status=%s,description=%s,image=%s where user_id=%s and problem_id=%s',(status,input_text,image_data,user_id,problem_id))
-        except Exception as e:
-            Logger().get_logger().error(f'{user_id}:{problem_id} 做题状态更新失败')
-            raise e
-
-    def delete_problem_id(self,user_id,problem_id):
-        try:
-            self.cursor.execute('delete from user_problem_status where user_id=%s and problem_id=%s',
-                                (user_id, problem_id))
-        except Exception as e:
-            Logger().get_logger().error(f'{user_id}:{problem_id} 删除失败; {e}')
-            raise e
+    def __repr__(self):
+        return f'<UserProblemStatus {self.user_id},{self.problem_id},{self.status},{self.time_spent},{self.description}>'
