@@ -378,4 +378,4 @@ def get_account_info():
     return jsonify({'status_code':True,'message':'获取用户信息成功','user_id': user_info}),201
 
 if __name__=='__main__':
-    app.run(host='0.0.0.0',port=8080)
+    app.run(host='0.0.0.0',port=8080,threaded=True)
