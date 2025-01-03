@@ -1,4 +1,3 @@
-from utils import mysql_config
 from utils.logger import Logger
 from model.database import db
 

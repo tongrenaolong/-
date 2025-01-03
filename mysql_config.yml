@@ -1,6 +1,6 @@
 mysql:
-  host: '127.0.0.1'
+  host: 'host.docker.internal'
   port: '3306'
   username: 'root'
-  password: 'Chenyx@1314'
+  password: 'Yaoaolong111'
   database: 'OnlineRecord'
